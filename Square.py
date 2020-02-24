@@ -5,7 +5,7 @@ class Square:
         self.piece = piece
         
     def print_data(self):
-        print(self.color + self.piece)
+        print(self.color + self.piece, end="")
         
     def set_color(self, color):
         self.color = color
@@ -20,4 +20,4 @@ class Square:
         return self.piece
 
     def isEmpty(self):
-        return self.color = '-' and self.piece = '-'
+        return self.color == '-' and self.piece == '-'
