@@ -16,7 +16,9 @@ class Square:
         else:
             self.set_color(color)
             self.set_piece(piece)
-        
+
+    #Some helpful methods to be used by other classes
+    
     def print_data(self):
         print(self.color + self.piece, end="")
         
