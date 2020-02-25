@@ -49,14 +49,27 @@ class Board:
         return row >= 0 and col >= 0 and row < 8 and col < 8
 
     def is_valid_move(self, old_row, old_col, new_row, new_col):
+
+        #Must make a move
+        if old_row == new_row and old_col == new_col:
+            return False
+        
         old_square = self.board[old_row][old_col]
+
+        #Must have a piece on that square
+        if old_square.is_empty():
+            return False
+        
         piece = old_square.get_piece()
+        color = old_square.get_color()
+
+        #Checks if the piece is moved to a square with the same colored piece
+        if self.board[new_row][new_col].get_color() == color:
+            return False
 
         #If this is a pawn
-        if piece == 'P':
-            player = old_square.get_color()
-            
-            if player == 'W':
+        if piece == 'P':            
+            if color == 'W':
                 #First move for a pawn allows for 2-space movement
                 if old_row == 6 and old_row - 2 == new_row and old_col == new_col:
                     return (self.board[old_row - 1][old_col].is_empty()
@@ -92,19 +105,154 @@ class Board:
             return (abs(new_row - old_row) + abs(new_col - old_col) == 3
                     and old_row != new_row and old_col != new_col)
 
+        elif piece == 'B':
+            if abs(new_row - old_row) == abs(new_col - old_col):
+                col_direction = 1
+                if new_col < old_col:
+                    col_direction = -1
+
+                row_direction = 1
+                if new_row < old_row:
+                    row_direction = -1
+
+                for i in range(1, abs(new_row - old_row)):
+                    if not self.board[old_row + i * row_direction][old_col + i * col_direction].is_empty():
+                        return False
+
+                return True
+
+            return False
+
+        elif piece == 'R':
+            if new_row == old_row:
+                for col in range(min(new_col, old_col) + 1, max(new_col, old_col)):
+                    if not self.board[new_row][col].is_empty():
+                        return False
+
+                return True
+
+            elif new_col == old_col:
+                for row in range(min(new_row, old_row) + 1, max(new_row, old_row)):
+                    if not self.board[row][new_col].is_empty():
+                        return False
+
+                return True
+
+            else:
+                return False
+
+        elif piece == 'K':
+            #Checks if king has moved only one square in any direction
+            #Also checks that the king is not moving into a spot where it can be taken
+            if abs(new_row - old_row) <= 1 and abs(new_col - old_col) <= 1:
+                return not self.is_threatened_square(new_row, new_col, self.board[new_row][new_col].get_color())
+            return False
+
+        elif piece == 'Q':
+            if new_row == old_row:
+                for col in range(min(new_col, old_col) + 1, max(new_col, old_col)):
+                    if not self.board[new_row][col].is_empty():
+                        return False
+
+                return True
+
+            elif new_col == old_col:
+                for row in range(min(new_row, old_row) + 1, max(new_row, old_row)):
+                    if not self.board[row][new_col].is_empty():
+                        return False
+
+                return True
+
+            elif abs(new_row - old_row) == abs(new_col - old_col):
+                col_direction = 1
+                if new_col < old_col:
+                    col_direction = -1
+
+                row_direction = 1
+                if new_row < old_row:
+                    row_direction = -1
+
+                for i in range(1, abs(new_row - old_row)):
+                    if not self.board[old_row + i * row_direction][old_col + i * col_direction].is_empty():
+                        return False
+
+                return True
+
+            return False
+
+        #Should never reach this spot
+        return False
+            
+
+    #Checks if a current square is threatened
+    #Only checks if it is threatened by a piece
+    #That is not of the player_color
+    def is_threatened_square(self, row, col, player_color):
+        for r in range(0, 8):
+            for c in range(0, 8):
+                square = self.board[r][c]
                 
+                if square.get_color() == player_color or square.is_empty():
+                    continue
+                
+                if square.get_piece() == 'K':
+                    return abs(row - r) <= 1 and abs(col - c) <= 1
+                elif self.is_valid_move(r, c, row, col):
+                    return True
 
+        return False
 
+    #Checks if a player has won
+    #'B' = black won, 'W' = white won, '-' = no winner (continue play), 'S' = stalemate
+    def get_game_status(self):
+        for row in range(0, 8):
+            for col in range(0, 8):
+                if self.board[row][col].get_piece() == 'K':
+                    try:
+                        for r in range(row - 1, row + 2):
+                            for c in range(col - 1, col + 2):
+                                if r == row and c == col:
+                                    continue
+                                if not self.is_threatened_square(r, c, self.board[r][c].get_color()):
+                                    #This is an error thrown to break out of multiple loops
+                                    #Also used to check if there is a winner
+                                    raise RuntimeError()
+                                
+                    except RuntimeError:
+                        continue #This means that the king had a place to move
 
-#MAIN CODE
-#This is just for testing purposes
-#These will eventually be moved to a new file
+                    #The king did not have a place to move
+                    #This means that it is either a checkmate or a stalemate
+                    player_color = self.board[row][col].get_color()
+                    if self.is_threatened_square(row, col, player_color):
+                        #This is a checkmate
+                        if player_color == 'B':
+                            #White wins
+                            return 'W'
+                        else:
+                            #Black wins
+                            return 'B'
+                    else:
+                        #This is a stalemate
+                        return 'S'
 
-board = Board()
-board.print_board()
+        #There is no winner
+        return '-'
+
+    #Moves a piece if valid
+    #Returns true if the piece was moved and false if the move was invalid
+    def move(self, old_row, old_col, new_row, new_col):
+        if self.is_valid_move(old_row, old_col, new_row, new_col):
+            old_square = self.board[old_row][old_col]
+            new_square = self.board[new_row][new_col]
+            new_square.set_color(old_square.get_color())
+            new_square.set_piece(old_square.get_piece())
+            old_square.set_to_empty()
+
+            return True
+
+        return False
         
-        
-print(board.is_valid_move(1, 0, 3, 0))
 
 
 
