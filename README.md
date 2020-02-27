@@ -5,6 +5,6 @@ Hello! This is a python program that allows two users to play a chess game toget
 
 If you are interested in seeing previous versions of my game, they are tagged by v<version_name> starting with v0.
 
-This is currently a work in progress, and might have bugs. 
+This is currently a work in progress, and the checkmate recognition is currently not completed correctly. 
 
 Enjoy and thanks for visiting!
